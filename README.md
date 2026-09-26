@@ -96,7 +96,7 @@ bun run demo
 ```
 
 Starts two seller processes: honest on `:8787` (`SELLER_PAY_TO` from `.env`)
-and an "impostor" on `:8788` (`payTo` from `IMPOSTOR_PAY_TO`): then runs the
+and an "impostor" on `:8788` (`payTo` from `IMPOSTOR_PAY_TO`), then runs the
 buyer's pre-signature screen against each, against a real Base mainnet
 Uniswap V3 pool (default: the verified USDC/WETH 0.05% pool, see
 `scripts/demo.ts` for how it was verified; override with `--pool <address>`).
@@ -105,8 +105,8 @@ Uniswap V3 pool (default: the verified USDC/WETH 0.05% pool, see
   and the EIP-3009 message it is about to sign, then reports the verdict,
   whether it signed, and the settlement tx hash if the card was paid for.
 - **Case 2 (impostor)**: same, against the impostor `payTo`. `IMPOSTOR_PAY_TO`
-  is meant to be a known-risk Base mainnet address (get one from Intercepta's
-  Discord): if it is unset, this case is skipped with a clear message rather
+  is a known-risk mainnet address (the live run used a public OFAC SDN address, see above)
+  . If it is unset, this case is skipped with a clear message rather
   than inventing an address.
 
 Each case prints its own verdict table, then a two-case summary at the end.
@@ -120,7 +120,7 @@ bun apps/buyer/src/cli.ts --discover [--limit N]
 ```
 
 Fetches the public CDP Bazaar discovery list (`GET
-https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources`: no API
+https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources`, no API
 key needed to read it), takes the first `N` resources (default 5), and
 screens each *unique* `payTo` among them with `quickScan` + `toxicScore`
 (address screening only, via `packages/screen`). Prints a
@@ -154,7 +154,7 @@ every one of these calls fails closed before any network request: `HOLD`,
 reason `no_api_key`.
 
 Every call also consumes one unit of a process-wide request budget
-(`INTERCEPTA_BUDGET`, default 50), checked *before* the API key: once
+(`INTERCEPTA_BUDGET`, default 50), checked *before* the API key. Once
 exceeded, further calls in that process fail closed with `HOLD`, reason
 `budget_exhausted`, without a network request either. See
 `packages/intercepta/src/budget.ts`.
