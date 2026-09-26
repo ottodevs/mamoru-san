@@ -18,6 +18,19 @@ The verdict decides what happens: `PAY`, `CAP` (lower the spend cap), `HOLD`
 (stop for a person) or `REFUSE`. A timeout, a bad answer or a missing key is a
 `HOLD`: silence never pays.
 
+## Live endpoint
+
+```
+https://san.mamoru.lol/card/<Base V3 pool address>
+```
+
+An unpaid request gets HTTP 402 with the payment requirements. To pay and
+read a card:
+
+```
+bun apps/buyer/src/cli.ts https://san.mamoru.lol/card/0xd0b53D9277642d899DF5C87A3966A349A798F224
+```
+
 ## Live run (2026-09-26)
 
 Payment on Base Sepolia (`eip155:84532`), screening against Base and Ethereum
