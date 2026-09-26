@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@mamoru-san/screen": "workspace:*",
@@ -16,5 +17,8 @@
     "@x402/hono": "2.27.0",
     "hono": "4.13.9",
     "viem": "2.56.9"
+  },
+  "devDependencies": {
+    "wrangler": "4.139.0"
   }
 }
