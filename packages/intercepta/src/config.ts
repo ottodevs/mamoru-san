@@ -1,5 +1,6 @@
 export const BASE_URL = "https://api.web3antivirus.io/api/public/v2/extension";
-export const TIMEOUT_MS = 4_000;
+// First scan of an unseen address took >4s live; warm scans ~150ms.
+export const TIMEOUT_MS = Number(process.env.INTERCEPTA_TIMEOUT_MS) || 10_000;
 
 /** Read lazily (not cached) so tests can toggle INTERCEPTA_API_KEY per case. */
 export function getApiKey(): string | undefined {
