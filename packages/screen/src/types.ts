@@ -10,7 +10,7 @@
 export type Verdict = "PAY" | "REFUSE" | "CAP" | "HOLD";
 
 /** Why an Intercepta call could not be answered. */
-export type ScanFailureKind = "timeout" | "forbidden" | "bad_body" | "no_api_key";
+export type ScanFailureKind = "timeout" | "forbidden" | "bad_body" | "no_api_key" | "budget_exhausted";
 
 export interface ScanFailure {
   readonly kind: ScanFailureKind;
@@ -20,13 +20,21 @@ export interface ScanFailure {
 /** A scan result is either the normalized success shape, or a typed failure. */
 export type Scan<T> = T | ScanFailure;
 
+const SCAN_FAILURE_KINDS: ReadonlySet<string> = new Set([
+  "timeout",
+  "forbidden",
+  "bad_body",
+  "no_api_key",
+  "budget_exhausted",
+]);
+
 export function isScanFailure(value: unknown): value is ScanFailure {
   return (
     typeof value === "object" &&
     value !== null &&
     "kind" in value &&
     typeof (value as { kind: unknown }).kind === "string" &&
-    ["timeout", "forbidden", "bad_body", "no_api_key"].includes((value as { kind: string }).kind)
+    SCAN_FAILURE_KINDS.has((value as { kind: string }).kind)
   );
 }
 

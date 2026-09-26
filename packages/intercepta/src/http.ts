@@ -1,4 +1,5 @@
 import type { ScanFailure } from "@mamoru-san/screen";
+import { getBudget, isBudgetExhausted, nextCallCount } from "./budget.ts";
 import { BASE_URL, TIMEOUT_MS, getApiKey } from "./config.ts";
 
 export interface ApiSuccess {
@@ -9,21 +10,33 @@ export interface ApiSuccess {
 export type ApiResult = ApiSuccess | ScanFailure;
 
 /** One JSON line per Intercepta call, to stderr, for the README evidence log. */
-function logCall(endpoint: string, latencyMs: number, status: number | string): void {
-  console.error(JSON.stringify({ endpoint, latencyMs, status }));
+function logCall(endpoint: string, latencyMs: number, status: number | string, count: number): void {
+  console.error(JSON.stringify({ endpoint, latencyMs, status, count }));
 }
 
 /**
  * Calls one Intercepta endpoint. Never throws.
  *
- * Fails closed: with no INTERCEPTA_API_KEY, this returns `{ kind: "no_api_key" }`
- * WITHOUT making a network call. A 403 maps to `forbidden`, a timeout (4s) to
- * `timeout`, and any non-2xx status or unparseable body to `bad_body`.
+ * Fails closed in two ways, checked in order:
+ * 1. Once the process-wide request budget (`INTERCEPTA_BUDGET`, default 50)
+ *    is exceeded, this returns `{ kind: "budget_exhausted" }` WITHOUT
+ *    checking the API key or making a network call. See budget.ts.
+ * 2. With no INTERCEPTA_API_KEY, this returns `{ kind: "no_api_key" }`
+ *    WITHOUT making a network call.
+ *
+ * A 403 maps to `forbidden`, a timeout (4s) to `timeout`, and any non-2xx
+ * status or unparseable body to `bad_body`.
  */
 export async function callIntercepta(path: string, init: RequestInit & { method: string }): Promise<ApiResult> {
+  const count = nextCallCount();
+  if (isBudgetExhausted(count)) {
+    logCall(path, 0, "budget_exhausted", count);
+    return { kind: "budget_exhausted", detail: `INTERCEPTA_BUDGET (${getBudget()}) exceeded at call ${count}` };
+  }
+
   const apiKey = getApiKey();
   if (!apiKey) {
-    logCall(path, 0, "no_api_key");
+    logCall(path, 0, "no_api_key", count);
     return { kind: "no_api_key", detail: "INTERCEPTA_API_KEY is not set" };
   }
 
@@ -38,7 +51,7 @@ export async function callIntercepta(path: string, init: RequestInit & { method:
       signal: controller.signal,
     });
     const latencyMs = Math.round(performance.now() - start);
-    logCall(path, latencyMs, res.status);
+    logCall(path, latencyMs, res.status, count);
 
     if (res.status === 403) {
       return { kind: "forbidden", detail: `HTTP 403 from ${path}` };
@@ -56,10 +69,10 @@ export async function callIntercepta(path: string, init: RequestInit & { method:
   } catch (error) {
     const latencyMs = Math.round(performance.now() - start);
     if (error instanceof Error && error.name === "AbortError") {
-      logCall(path, latencyMs, "timeout");
+      logCall(path, latencyMs, "timeout", count);
       return { kind: "timeout", detail: `aborted after ${TIMEOUT_MS}ms` };
     }
-    logCall(path, latencyMs, "error");
+    logCall(path, latencyMs, "error", count);
     return { kind: "bad_body", detail: error instanceof Error ? error.message : "unknown fetch error" };
   } finally {
     clearTimeout(timeoutHandle);
