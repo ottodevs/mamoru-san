@@ -2,7 +2,8 @@ import { x402Client } from "@x402/core/client";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { privateKeyToAccount } from "viem/accounts";
-import { printCard, printVerdictTable } from "./report.ts";
+import { discoverAndScreen } from "./discover.ts";
+import { printCard, printDiscoverTable, printVerdictTable } from "./report.ts";
 import { screenBeforePayment } from "./policy.ts";
 
 function requiredEnv(name: string): string {
@@ -20,10 +21,40 @@ function parseAllowlist(): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Discovery mode: reads the public Bazaar list, takes the first `limit`
+ * resources, and screens each unique `payTo` (quickScan + toxicScore).
+ * Never pays.
+ */
+async function runDiscover(limit: number): Promise<void> {
+  const rows = await discoverAndScreen(limit);
+  printDiscoverTable(rows);
+}
+
 async function main(): Promise<void> {
-  const url = process.argv[2];
+  const args = process.argv.slice(2);
+
+  if (args.includes("--discover")) {
+    const limitIndex = args.indexOf("--limit");
+    const limitArg = limitIndex !== -1 ? args[limitIndex + 1] : undefined;
+    const limit = limitArg !== undefined ? Number(limitArg) : 5;
+    if (!Number.isInteger(limit) || limit <= 0) {
+      console.error("usage: bun apps/buyer/src/cli.ts --discover [--limit N]  (N must be a positive integer)");
+      process.exitCode = 1;
+      return;
+    }
+    try {
+      await runDiscover(limit);
+    } catch (error) {
+      console.error(`Discover failed: ${error instanceof Error ? error.message : String(error)}`);
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  const url = args[0];
   if (!url) {
-    console.error("usage: bun apps/buyer/src/cli.ts <url>");
+    console.error("usage: bun apps/buyer/src/cli.ts <url>\n       bun apps/buyer/src/cli.ts --discover [--limit N]");
     process.exitCode = 1;
     return;
   }
