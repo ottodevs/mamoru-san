@@ -1,4 +1,4 @@
-import { createPublicClient, getAddress, http, type Address } from "viem";
+import { createPublicClient, fallback, getAddress, http, type Address } from "viem";
 import { base } from "viem/chains";
 
 const poolAbi = [
@@ -28,12 +28,27 @@ const erc20Abi = [
   { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
 ] as const;
 
+// Public Base RPCs tried in order; BASE_RPC_URL, if set, goes first.
+const PUBLIC_BASE_RPCS = [
+  "https://mainnet.base.org",
+  "https://base-rpc.publicnode.com",
+  "https://base.llamarpc.com",
+  "https://1rpc.io/base",
+];
+
 export function baseRpcUrl(): string {
-  return process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
+  return process.env.BASE_RPC_URL || "https://mainnet.base.org";
 }
 
 export function createRpcClient() {
-  return createPublicClient({ chain: base, transport: http(baseRpcUrl()) });
+  const custom = process.env.BASE_RPC_URL;
+  const urls = custom ? [custom, ...PUBLIC_BASE_RPCS] : PUBLIC_BASE_RPCS;
+  return createPublicClient({
+    chain: base,
+    // Multicall folds the pool and token reads into one eth_call.
+    batch: { multicall: true },
+    transport: fallback(urls.map((url) => http(url, { retryCount: 1 }))),
+  });
 }
 
 export type RpcClient = ReturnType<typeof createRpcClient>;
@@ -61,7 +76,7 @@ export interface PoolFacts {
  * engine, no signing. */
 export async function readPool(client: RpcClient, poolAddress: string): Promise<PoolFacts> {
   const pool = getAddress(poolAddress);
-  const rpcSource = `rpc:${baseRpcUrl()}`;
+  const rpcSource = "rpc:base-mainnet";
 
   const [token0, token1, fee, liquidity, slot0, block] = await Promise.all([
     client.readContract({ address: pool, abi: poolAbi, functionName: "token0" }),

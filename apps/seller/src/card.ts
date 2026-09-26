@@ -7,7 +7,12 @@ const INTERCEPTA_SOURCE = "intercepta:token-risks";
 
 /** The questions Mamoru asks itself before entering a pool. Named only — no
  * Packaging thresholds, those stay in shadow until the engine ships them. */
-const MAMORU_QUESTIONS = ["Purga", "Risk Monitor", "Execution Health Gate", "ENY"] as const;
+const MAMORU_QUESTIONS = [
+  { gate: "Purga", question: "Should this pool or its tokens be excluded before any capital enters?" },
+  { gate: "Risk Monitor", question: "With capital inside, has anything changed that calls for leaving?" },
+  { gate: "Execution Health Gate", question: "Can this specific operation execute cleanly right now?" },
+  { gate: "ENY", question: "Is the expected net yield, after fees and drift, worth holding?" },
+] as const;
 
 export interface TokenCardFacts extends TokenFacts {
   readonly source: string;
@@ -32,7 +37,7 @@ export interface Card {
     readonly token0: TokenRiskField;
     readonly token1: TokenRiskField;
   };
-  readonly questions: readonly string[];
+  readonly questions: readonly { readonly gate: string; readonly question: string }[];
   readonly generatedAt: string;
 }
 
