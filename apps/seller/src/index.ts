@@ -1,3 +1,4 @@
+import { createFacilitatorConfig } from "@coinbase/x402";
 import { HTTPFacilitatorClient, x402ResourceServer, type RoutesConfig } from "@x402/core/server";
 import { isEIP3009Payload, type ExactEvmPayloadV2 } from "@x402/evm";
 import { registerExactEvmScheme } from "@x402/evm/exact/server";
@@ -10,6 +11,14 @@ import { buildCard } from "./card.ts";
 import { createRpcClient } from "./pool.ts";
 
 const FACILITATOR_URL = "https://x402.org/facilitator"; // demo facilitator; Base Sepolia only.
+
+// CDP facilitator when its keys are set: settling through it lists the route in the Bazaar.
+function facilitatorClient(): HTTPFacilitatorClient {
+  const id = process.env.CDP_API_KEY_ID;
+  const secret = process.env.CDP_API_KEY_SECRET;
+  if (id && secret) return new HTTPFacilitatorClient(createFacilitatorConfig(id, secret));
+  return new HTTPFacilitatorClient({ url: FACILITATOR_URL });
+}
 const NETWORK = "eip155:84532"; // Base Sepolia
 const PRICE = "$0.001";
 
@@ -49,8 +58,7 @@ async function screenPayer(paymentPayloadPayload: unknown): Promise<{ abort: tru
 export function createApp(): Hono {
   const payTo = requiredEnv("SELLER_PAY_TO");
 
-  const facilitatorClient = new HTTPFacilitatorClient({ url: FACILITATOR_URL });
-  const x402Server = new x402ResourceServer(facilitatorClient);
+  const x402Server = new x402ResourceServer(facilitatorClient());
   registerExactEvmScheme(x402Server, {});
 
   x402Server.onBeforeSettle(async (ctx) => screenPayer(ctx.paymentPayload.payload));
@@ -75,11 +83,11 @@ export function createApp(): Hono {
           },
           output: {
             example: {
-              pool: "0x0000000000000000000000000000000000dEaD",
+              pool: "0xd0b53D9277642d899DF5C87A3966A349A798F224",
               chain: "base",
               block: "0",
-              token0: { address: "0x...", symbol: "WETH", decimals: 18, source: "rpc:https://mainnet.base.org" },
-              token1: { address: "0x...", symbol: "USDC", decimals: 6, source: "rpc:https://mainnet.base.org" },
+              token0: { address: "0x...", symbol: "WETH", decimals: 18, source: "rpc:base-mainnet" },
+              token1: { address: "0x...", symbol: "USDC", decimals: 6, source: "rpc:base-mainnet" },
               fee: 500,
               liquidity: "0",
               tick: 0,
@@ -87,7 +95,7 @@ export function createApp(): Hono {
                 token0: { action: "info", reasons: [], source: "intercepta:token-risks" },
                 token1: { action: "info", reasons: [], source: "intercepta:token-risks" },
               },
-              questions: ["Purga", "Risk Monitor", "Execution Health Gate", "ENY"],
+              questions: [{ gate: "Purga", question: "Should this pool or its tokens be excluded before any capital enters?" }],
               generatedAt: "2026-09-26T00:00:00.000Z",
             },
             schema: { type: "object" },

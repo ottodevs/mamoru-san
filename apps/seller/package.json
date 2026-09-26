@@ -9,8 +9,9 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "@mamoru-san/screen": "workspace:*",
+    "@coinbase/x402": "2.1.0",
     "@mamoru-san/intercepta": "workspace:*",
+    "@mamoru-san/screen": "workspace:*",
     "@x402/core": "2.27.0",
     "@x402/evm": "2.27.0",
     "@x402/extensions": "2.27.0",
