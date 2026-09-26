@@ -1,23 +1,62 @@
 # mamoru-san
 
-An x402 seller that answers one question for 0.001 USDC: is this Base pool and
-these tokens a place to leave money? It reads a Uniswap V3 pool's on-chain
-facts plus Intercepta's risk verdicts on both tokens, and names the questions
-it asks itself before entering a pool (Purga, Risk Monitor, Execution Health
-Gate, ENY) without publishing their thresholds. Because the service lives in
-an open x402 directory, both sides screen their own money movement with
-Intercepta before it happens: the buyer screens the seller's `payTo`, the
-asset, and the payment message before signing; the seller screens the payer
-before settling.
+Mamoru San sells one answer to other agents for 0.001 USDC over x402: is this
+Uniswap V3 pool on Base, and are its tokens, a place to leave money? The card
+joins the pool's on-chain facts, Intercepta's verdict on both tokens, and the
+four questions Mamoru asks before it enters a pool (without their thresholds).
+
+Agents find sellers like this one in open x402 directories, so neither side
+knows who is on the other end. A risk service that takes money from a
+sanctioned wallet, or a risk buyer that pays a spoofed `payTo`, contradicts
+itself. So both sides screen their own payment with Intercepta before it moves:
+
+- the **buyer** screens the seller's `payTo`, the payment token and the
+  authorization it is about to sign, in `onBeforePaymentCreation`;
+- the **seller** screens the payer before settling, in `onBeforeSettle`.
+
+The verdict decides what happens: `PAY`, `CAP` (lower the spend cap), `HOLD`
+(stop for a person) or `REFUSE`. A timeout, a bad answer or a missing key is a
+`HOLD`: silence never pays.
+
+## Live run (2026-09-26)
+
+Payment on Base Sepolia (`eip155:84532`), screening against Base and Ethereum
+mainnet data, card for the Base USDC/WETH 0.05% pool
+`0xd0b53D9277642d899DF5C87A3966A349A798F224`.
+
+| Case | Seller `payTo` | Verdict | Signed | Settlement |
+|---|---|---|---|---|
+| Honest seller | fresh demo wallet `0xa4bE...b1F3` | `PAY` | yes | [`0x5028f79d...499f`](https://sepolia.basescan.org/tx/0x5028f79d7e06ae421b9291fc9ed4a0e1294bf6ef61afda7494cce5fea536499f) |
+| Impostor seller | `0x098B716B8Aaf21512996dC57EB0615e2383E2f96` (OFAC SDN, Ronin exploit) | `REFUSE` | no | none |
+
+The impostor was refused on Intercepta's live traits `sanction_address`,
+`known_scammer` and `blacklist` (toxic score 100), before any signature. On
+the honest run the seller also screened the buyer's address live before it
+settled.
+
+## Verdict rules
+
+| Intercepta says | Verdict |
+|---|---|
+| trait `sanction_address`, `known_scammer`, `blacklist`, `mixer_transfers` or `rug_pull` | `REFUSE` |
+| token `action: block`, or message `riskGroup: High` with `WALLET_DRAINER` | `REFUSE` |
+| message `riskGroup: High` without a drainer | `HOLD` |
+| token `action: warn`, or message `riskGroup: Medium` | `CAP` |
+| timeout, 403, unexpected body, no key, budget spent | `HOLD` |
+| clean address, token `info`, message low | `PAY`, within the signer's cap and `payTo` allowlist |
+
+The most severe result wins. The spend cap (0.005 USDC per call, 0.001 after a
+`CAP`) and the `payTo` allowlist belong to whoever signs; no Intercepta
+verdict raises them.
 
 ## Packages and apps
 
-- `packages/screen` — pure verdict engine (`PAY` / `REFUSE` / `CAP` / `HOLD`)
+- `packages/screen`: pure verdict engine (`PAY` / `REFUSE` / `CAP` / `HOLD`)
   over normalized Intercepta results. No network calls.
-- `packages/intercepta` — live Intercepta client (quick-scan, toxic-score,
+- `packages/intercepta`: live Intercepta client (quick-scan, toxic-score,
   token-risks, scan-message). Fails closed with no API key.
-- `apps/seller` — Hono x402 resource server, `GET /card/:pool`.
-- `apps/buyer` — CLI that pays for and reads a card.
+- `apps/seller`: Hono x402 resource server, `GET /card/:pool`.
+- `apps/buyer`: CLI that pays for and reads a card.
 
 ## Setup
 
@@ -56,8 +95,8 @@ table, then the card on success.
 bun run demo
 ```
 
-Starts two seller processes — honest on `:8787` (`SELLER_PAY_TO` from `.env`)
-and an "impostor" on `:8788` (`payTo` from `IMPOSTOR_PAY_TO`) — then runs the
+Starts two seller processes: honest on `:8787` (`SELLER_PAY_TO` from `.env`)
+and an "impostor" on `:8788` (`payTo` from `IMPOSTOR_PAY_TO`): then runs the
 buyer's pre-signature screen against each, against a real Base mainnet
 Uniswap V3 pool (default: the verified USDC/WETH 0.05% pool, see
 `scripts/demo.ts` for how it was verified; override with `--pool <address>`).
@@ -67,7 +106,7 @@ Uniswap V3 pool (default: the verified USDC/WETH 0.05% pool, see
   whether it signed, and the settlement tx hash if the card was paid for.
 - **Case 2 (impostor)**: same, against the impostor `payTo`. `IMPOSTOR_PAY_TO`
   is meant to be a known-risk Base mainnet address (get one from Intercepta's
-  Discord) — if it is unset, this case is skipped with a clear message rather
+  Discord): if it is unset, this case is skipped with a clear message rather
   than inventing an address.
 
 Each case prints its own verdict table, then a two-case summary at the end.
@@ -81,11 +120,11 @@ bun apps/buyer/src/cli.ts --discover [--limit N]
 ```
 
 Fetches the public CDP Bazaar discovery list (`GET
-https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources` — no API
+https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources`: no API
 key needed to read it), takes the first `N` resources (default 5), and
 screens each *unique* `payTo` among them with `quickScan` + `toxicScore`
 (address screening only, via `packages/screen`). Prints a
-resource / payTo / verdict / reasons table. This mode never pays — it is
+resource / payTo / verdict / reasons table. This mode never pays: it is
 read-only directory screening, useful to see live verdicts on real x402
 sellers' payout addresses without transacting with them.
 
@@ -115,7 +154,7 @@ every one of these calls fails closed before any network request: `HOLD`,
 reason `no_api_key`.
 
 Every call also consumes one unit of a process-wide request budget
-(`INTERCEPTA_BUDGET`, default 50), checked *before* the API key — once
+(`INTERCEPTA_BUDGET`, default 50), checked *before* the API key: once
 exceeded, further calls in that process fail closed with `HOLD`, reason
 `budget_exhausted`, without a network request either. See
 `packages/intercepta/src/budget.ts`.
