@@ -10,8 +10,8 @@ import { printVerdictTable } from "../apps/buyer/src/report.ts";
 const REPO_ROOT = new URL("..", import.meta.url).pathname;
 const SELLER_ENTRY = join(REPO_ROOT, "apps/seller/src/index.ts");
 
-const HONEST_PORT = 8787;
-const IMPOSTOR_PORT = 8788;
+const HONEST_PORT = Number(process.env.DEMO_HONEST_PORT ?? 8787);
+const IMPOSTOR_PORT = Number(process.env.DEMO_IMPOSTOR_PORT ?? 8788);
 
 /**
  * Base mainnet Uniswap V3 USDC/WETH 0.05% pool.
