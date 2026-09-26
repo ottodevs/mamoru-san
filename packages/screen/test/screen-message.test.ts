@@ -51,9 +51,9 @@ describe("screenMessage", () => {
     expect(result.reasons[0]?.code).toBe("message_wallet_drainer");
   });
 
-  test("High without WALLET_DRAINER -> CAP", () => {
+  test("High without WALLET_DRAINER -> HOLD", () => {
     const result = screenMessage(highOther);
-    expect(result.verdict).toBe("CAP");
+    expect(result.verdict).toBe("HOLD");
     expect(result.reasons[0]?.code).toBe("message_high_risk");
   });
 

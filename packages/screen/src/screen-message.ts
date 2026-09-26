@@ -8,7 +8,8 @@ import { isScanFailure, type MessageScan, type PartResult, type Scan } from "./t
  * - A failed call (timeout, bad body, 403, or no_api_key) -> HOLD. A silence is
  *   not a payment.
  * - riskGroup High + WALLET_DRAINER detector -> REFUSE.
- * - riskGroup High (without WALLET_DRAINER) or Medium -> CAP.
+ * - riskGroup High (without WALLET_DRAINER) -> HOLD for a human.
+ * - riskGroup Medium -> CAP.
  * - riskGroup Low with a classified messageType (Permit/Permit2 family) and no
  *   detectors -> clean.
  * - riskGroup Low with a classified messageType but detectors present -> CAP.
@@ -38,7 +39,7 @@ export function screenMessage(scan: Scan<MessageScan>): PartResult {
 
   if (riskGroup === "High") {
     return {
-      verdict: "CAP",
+      verdict: "HOLD",
       reasons: [{ code: "message_high_risk", detail: "riskGroup High", source: "message" }],
     };
   }
