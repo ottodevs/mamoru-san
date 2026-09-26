@@ -122,4 +122,9 @@ exceeded, further calls in that process fail closed with `HOLD`, reason
 
 ## API feedback
 
-To be written after the first live calls.
+From our first live calls with the sandbox key (2026-09-26):
+
+- Scan Message does not parse an x402 payment authorization. For an EIP-3009 `TransferWithAuthorization` on Base USDC it answers 201 with `domain` fields all `null`, `messageType: null`, no `addresses` and `riskGroup: "Low"`. That `Low` means "not understood", not "safe", so we record it as unclassified and let the `payTo` and token scans decide. Adding EIP-3009 (and Permit2 witness transfers) would make the signature check useful for x402.
+- The first scan of an address never seen before took more than 4 s; repeat scans of the same address answered in about 130-150 ms. We raised our timeout to 10 s, and a timeout still holds the payment.
+- Token risks for Base USDC with `chainId=8453` answered in about 470 ms. Toxic score and quick scan are separate calls with overlapping data, so screening one counterparty costs two requests.
+- Good: one header, clear JSON, and `traits` / `detectors` with readable codes made the verdict easy to explain to a person.
