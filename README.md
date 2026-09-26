@@ -105,8 +105,8 @@ Uniswap V3 pool (default: the verified USDC/WETH 0.05% pool, see
   and the EIP-3009 message it is about to sign, then reports the verdict,
   whether it signed, and the settlement tx hash if the card was paid for.
 - **Case 2 (impostor)**: same, against the impostor `payTo`. `IMPOSTOR_PAY_TO`
-  is a known-risk mainnet address (the live run used a public OFAC SDN address, see above)
-  . If it is unset, this case is skipped with a clear message rather
+  is a known-risk mainnet address (the live run used a public OFAC SDN address, see above).
+  If it is unset, this case is skipped with a clear message rather
   than inventing an address.
 
 Each case prints its own verdict table, then a two-case summary at the end.
