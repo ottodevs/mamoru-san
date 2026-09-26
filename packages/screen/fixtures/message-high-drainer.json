@@ -1,0 +1,5 @@
+{
+  "riskGroup": "High",
+  "detectors": ["WALLET_DRAINER"],
+  "messageType": "PermitForAll"
+}

@@ -1,0 +1,5 @@
+{
+  "riskGroup": "Medium",
+  "detectors": ["SUSPICIOUS_APPROVE"],
+  "messageType": "PermitBatch"
+}

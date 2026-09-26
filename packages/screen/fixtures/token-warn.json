@@ -1,0 +1,4 @@
+{
+  "action": "warn",
+  "reasons": [{ "code": "HIGH_TAX", "detail": "sell tax above typical range" }]
+}

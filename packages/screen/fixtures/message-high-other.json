@@ -1,0 +1,5 @@
+{
+  "riskGroup": "High",
+  "detectors": ["KNOWN_MALICIOUS"],
+  "messageType": "PermitForAll"
+}

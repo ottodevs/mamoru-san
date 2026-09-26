@@ -1,0 +1,20 @@
+{
+  "name": "@mamoru-san/seller",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@mamoru-san/screen": "workspace:*",
+    "@mamoru-san/intercepta": "workspace:*",
+    "@x402/core": "2.27.0",
+    "@x402/evm": "2.27.0",
+    "@x402/extensions": "2.27.0",
+    "@x402/hono": "2.27.0",
+    "hono": "4.13.9",
+    "viem": "2.56.9"
+  }
+}

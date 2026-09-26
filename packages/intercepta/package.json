@@ -1,0 +1,11 @@
+{
+  "name": "@mamoru-san/intercepta",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@mamoru-san/screen": "workspace:*"
+  }
+}

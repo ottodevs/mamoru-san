@@ -1,0 +1,4 @@
+{
+  "action": "block",
+  "reasons": [{ "code": "SCAM_ADDRESS", "detail": "token contract matches a known scam pattern" }]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "mamoru-san",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.13",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.base.json --noEmit",
+    "test": "bun test packages",
+    "seller": "bun apps/seller/src/index.ts",
+    "buyer": "bun apps/buyer/src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.13",
+    "typescript": "7.0.2"
+  }
+}
